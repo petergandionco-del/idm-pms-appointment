@@ -117,8 +117,9 @@ const CONFIG={
  phone:"",          // e.g. "0912 345 6789": shows a "Need help?" card when filled
  address:"",        // e.g. "Street, Davao City"
  hours:{open:8,close:17,closedDays:[0]},   // 0 = Sunday
- slots:["08:00","09:00","10:00","11:00","13:00","14:00","15:00","16:00"],
+ slots:["08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30"],
  daysAhead:21,
+cutoff:{Geely:"13:00",JMC:"13:00"}, // latest PMS appointment start time per brand (24-hour). Remove a brand to have no cut-off
  company:"Image Davao Motors Phil. Inc",
  dpo:{name:"",email:"",phone:"",address:""},   // Data Protection Officer: REQUIRED, fill in before going live
  retention:"Your appointment details are kept until your appointment is completed or cancelled, plus up to 6 months for follow-up questions or disputes"   // change this wording if your company policy differs
@@ -167,9 +168,9 @@ function view(){
  $("main").innerHTML=h+"</div>";bind()}
 function slotsHtml(){if(!S.date)return`<div class="sub">Pick a date to see available times</div>`;
  const now=new Date(),today=iso(now)===S.date,lim=now.getHours()+now.getMinutes()/60+1;
- const b=t=>{const hr=+t.split(":")[0];return`<button type="button" class="slot ${S.time===t?"on":""}" data-t="${t}" ${today&&hr<lim?"disabled":""}>${t12(t)}</button>`};
+ const co=(CONFIG.cutoff||{})[S.brand];const b=t=>{const hr=+t.split(":")[0]+ +t.split(":")[1]/60;return`<button type="button" class="slot ${S.time===t?"on":""}" data-t="${t}" ${(today&&hr<lim)||(co&&t>co)?"disabled":""}>${t12(t)}</button>`};
  const am=CONFIG.slots.filter(t=>+t.split(":")[0]<12),pm=CONFIG.slots.filter(t=>+t.split(":")[0]>=12);
- return`<div class="sub">Morning</div><div class="slots">${am.map(b).join("")}</div><div class="sub">Afternoon</div><div class="slots">${pm.map(b).join("")}</div>`}
+ return`${co?`<div class="notice" style="margin:0 0 6px"><b>Time cut-off</b>${S.brand} PMS and oil change appointments must start by <b>${t12(co)}</b>.</div>`:""}<div class="sub">Morning</div><div class="slots">${am.map(b).join("")}</div><div class="sub">Afternoon</div><div class="slots">${pm.map(b).join("")}</div>`}
 function bind(){
  document.querySelectorAll("[data-b]").forEach(b=>b.onclick=()=>{S.name=$("name").value;S.plate=$("plate").value;S.mobile=$("mobile").value;S.brand=b.dataset.b;intv();view()});
  document.querySelectorAll("[data-d]").forEach(b=>b.onclick=()=>{S.date=b.dataset.d;S.time="";view()});
@@ -185,7 +186,7 @@ function go1(){S.name=$("name").value.trim().replace(/\s+/g," ");S.plate=$("plat
  const b=fe("plate",!/^[A-Z0-9][A-Z0-9 -]{3,10}[A-Z0-9]$/.test(S.plate)?"Enter a valid plate number, e.g. ABC 1234.":"");
  const c=fe("mobile",!/^(09\d{9}|639\d{9}|9\d{9})$/.test(digits)?"Enter a valid mobile number, e.g. 0912 345 6789.":"");
  if(a&&b&&c){S.step=2;view();top_()}}
-function go2(){if(!S.date||!S.time){$("e_dt").textContent="Please choose a date and a time.";return}S.step=3;view();top_()}
+function go2(){if(!S.date||!S.time){$("e_dt").textContent="Please choose a date and a time.";return}const co=(CONFIG.cutoff||{})[S.brand];if(co&&S.time>co){S.time="";view();$("e_dt").textContent=S.brand+" appointments must start by "+t12(co)+". Please choose an earlier time.";return}S.step=3;view();top_()}
 async function submit(){S.notes=$("notes").value.trim();$("e_send").textContent="";
  if(!$("agree").checked){$("e_ag").textContent="Please tick the box to continue.";return}$("e_ag").textContent="";
  if($("gotcha").value){return}
